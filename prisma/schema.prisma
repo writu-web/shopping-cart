@@ -8,8 +8,95 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  password    String
+  role        Role       @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  cartItems   CartItem[]
+  orders      Order[]
+}
+
+model Product {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String      @unique
+  description String?
+  price       Decimal     @db.Decimal(10, 2)
+  stock       Int         @default(0)
+  imageUrl    String?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+}
+
+model Category {
+  id        Int        @id @default(autoincrement())
   name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
+  slug      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  products  Product[]
+}
+
+model CartItem {
+  id         Int       @id @default(autoincrement())
+  quantity   Int       @default(1)
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  user       User      @relation(fields: [userId], references: [id])
+  userId     Int
+
+  product    Product   @relation(fields: [productId], references: [id])
+  productId  Int
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  totalAmount Decimal      @db.Decimal(10,2)
+  status      OrderStatus  @default(PENDING)
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id])
+  userId      Int
+
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id         Int        @id @default(autoincrement())
+  quantity   Int
+  price      Decimal    @db.Decimal(10,2)
+
+  // Relations
+  order      Order      @relation(fields: [orderId], references: [id])
+  orderId    Int
+
+  product    Product    @relation(fields: [productId], references: [id])
+  productId  Int
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELLED
 }
