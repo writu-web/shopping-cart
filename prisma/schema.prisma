@@ -1,3 +1,6 @@
+// ==========================================================
+// GENERATOR & DATASOURCE
+// ==========================================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,87 +10,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int      @id @default(autoincrement())
-  name        String
-  email       String   @unique
-  password    String
-  role        Role       @default(USER)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  // Relations
-  cartItems   CartItem[]
-  orders      Order[]
-}
-
-model Product {
-  id          Int        @id @default(autoincrement())
-  name        String
-  slug        String      @unique
-  description String?
-  price       Decimal     @db.Decimal(10, 2)
-  stock       Int         @default(0)
-  imageUrl    String?
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  categoryId  Int?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
-}
-
-model Category {
-  id        Int        @id @default(autoincrement())
-  name      String
-  slug      String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  products  Product[]
-}
-
-model CartItem {
-  id         Int       @id @default(autoincrement())
-  quantity   Int       @default(1)
-  createdAt  DateTime  @default(now())
-
-  // Relations
-  user       User      @relation(fields: [userId], references: [id])
-  userId     Int
-
-  product    Product   @relation(fields: [productId], references: [id])
-  productId  Int
-}
-
-model Order {
-  id          Int         @id @default(autoincrement())
-  totalAmount Decimal      @db.Decimal(10,2)
-  status      OrderStatus  @default(PENDING)
-  createdAt   DateTime     @default(now())
-
-  // Relations
-  user        User         @relation(fields: [userId], references: [id])
-  userId      Int
-
-  items       OrderItem[]
-}
-
-model OrderItem {
-  id         Int        @id @default(autoincrement())
-  quantity   Int
-  price      Decimal    @db.Decimal(10,2)
-
-  // Relations
-  order      Order      @relation(fields: [orderId], references: [id])
-  orderId    Int
-
-  product    Product    @relation(fields: [productId], references: [id])
-  productId  Int
-}
-
+// ==========================================================
+// ENUMS
+// ==========================================================
 enum Role {
   USER
   ADMIN
@@ -99,4 +24,217 @@ enum OrderStatus {
   SHIPPED
   COMPLETED
   CANCELLED
+}
+
+// ==========================================================
+// USER & AUTH
+// ==========================================================
+model User {
+  id        Int        @id @default(autoincrement())
+  name      String
+  email     String     @unique
+  password  String
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relations
+  addresses  Address[]
+  cartItems  CartItem[]
+  orders     Order[]
+  wishlist   Wishlist[]
+  reviews    Review[]
+}
+
+// ==========================================================
+// CATEGORY TREE (Category → SubCategory → SubSubCategory)
+// ==========================================================
+model Category {
+  id           Int            @id @default(autoincrement())
+  name         String
+  slug         String         @unique
+  imageUrl     String?
+  seoTitle     String?
+  seoDesc      String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  subcategories SubCategory[]
+}
+
+model SubCategory {
+  id           Int            @id @default(autoincrement())
+  name         String
+  slug         String          @unique
+  imageUrl     String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  categoryId   Int
+  category     Category        @relation(fields: [categoryId], references: [id])
+
+  children     SubSubCategory[]
+}
+
+model SubSubCategory {
+  id            Int            @id @default(autoincrement())
+  name          String
+  slug          String          @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  subCategoryId Int
+  subcategory   SubCategory     @relation(fields: [subCategoryId], references: [id])
+
+  products      Product[]
+}
+
+// ==========================================================
+// PRODUCT MODELS
+// ==========================================================
+model Product {
+  id             Int               @id @default(autoincrement())
+  name           String
+  slug           String             @unique
+  description    String?
+  brand          String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  // SEO
+  seoTitle       String?
+  seoDesc        String?
+
+  // Category Relation
+  subSubCategoryId Int?
+  subSubCategory   SubSubCategory? @relation(fields: [subSubCategoryId], references: [id])
+
+  // Relations
+  images         ProductImage[]
+  attributes     ProductAttribute[]
+  variants       ProductVariant[]
+  reviews        Review[]
+  wishlists      Wishlist[]
+}
+
+// Product images
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  productId Int
+
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+// Attributes: color=red, fit=slim, etc.
+model ProductAttribute {
+  id        Int      @id @default(autoincrement())
+  key       String
+  value     String
+  productId Int
+
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+// Product Variants (size, color, stock)
+model ProductVariant {
+  id         Int        @id @default(autoincrement())
+  color      String?
+  size       String?
+  price      Decimal     @db.Decimal(10,2)
+  stock      Int         @default(0)
+
+  productId  Int
+  product    Product     @relation(fields: [productId], references: [id])
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+}
+
+// ==========================================================
+// CART & WISHLIST
+// ==========================================================
+model CartItem {
+  id         Int            @id @default(autoincrement())
+  quantity   Int            @default(1)
+  createdAt  DateTime       @default(now())
+
+  userId     Int
+  variantId  Int
+
+  user       User           @relation(fields: [userId], references: [id])
+  variant    ProductVariant @relation(fields: [variantId], references: [id])
+}
+
+model Wishlist {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  productId Int
+
+  user      User       @relation(fields: [userId], references: [id])
+  product   Product    @relation(fields: [productId], references: [id])
+}
+
+// ==========================================================
+// REVIEWS
+// ==========================================================
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  userId    Int
+  productId Int
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================================
+// ADDRESS
+// ==========================================================
+model Address {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  fullName  String
+  phone     String
+  address1  String
+  address2  String?
+  city      String
+  state     String
+  country   String
+  pincode   String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+}
+
+// ==========================================================
+// ORDER & ORDER ITEMS
+// ==========================================================
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  addressId   Int
+  totalAmount Decimal      @db.Decimal(10,2)
+  status      OrderStatus  @default(PENDING)
+  paymentId   String?
+  createdAt   DateTime     @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address     Address      @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id        Int       @id @default(autoincrement())
+  orderId   Int
+  variantId Int
+  quantity  Int
+  price     Decimal    @db.Decimal(10,2)
+
+  order     Order      @relation(fields: [orderId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
 }

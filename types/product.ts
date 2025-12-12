@@ -1,9 +1,8 @@
-export interface ProductType {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string | null;
-  priceCents: number;
-  image?: string | null;
-  inventory: number;
+import { Product, Category, SubCategory } from "@prisma/client";
+
+export interface ProductWithCategory extends Product {
+  category: Category | null;
+  subCategory: SubCategory | null;  
 }
+
+
