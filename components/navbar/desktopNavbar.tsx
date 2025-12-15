@@ -5,7 +5,11 @@ import MegaMenu from "./megaMenu";
 export default async function DesktopNavbar() {
   const categories = await prisma.category.findMany({
     include: {
-      children: true,
+      subcategories: {
+      include: {
+        children: true, // SubSubCategory[]
+      },
+    },
     },
     orderBy: { name: "asc" },
   });
