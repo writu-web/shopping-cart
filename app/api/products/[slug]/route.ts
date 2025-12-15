@@ -5,12 +5,14 @@ interface Params {
   slug: string;
 }
 
-export async function GET(request: NextRequest, { params }: {params: { slug: string } }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
+) {
   try {
+     const { slug } = await context.params;
     const product = await prisma.product.findUnique({
-      where: {
-        slug: params.slug,  
-        },
+      where: {slug},
         include: {
         variants: true,       // MUST include
         images: true,
