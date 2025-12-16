@@ -93,6 +93,7 @@ model SubSubCategory {
 // PRODUCT MODELS
 // ==========================================================
 model Product {
+  @@map("product")
   id             Int               @id @default(autoincrement())
   name           String
   slug           String             @unique
